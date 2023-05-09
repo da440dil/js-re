@@ -1,0 +1,29 @@
+{
+  "name": "@da440dil/re",
+  "version": "0.0.0",
+  "description": "Abstraction for retry strategies",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest --runInBand",
+    "test:coverage": "jest --runInBand --coverage",
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint --ext .ts src",
+    "file": "ts-node"
+  },
+  "keywords": ["retry"],
+  "author": "Anatoly Demidovich",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@typescript-eslint/eslint-plugin": "^5.57.0",
+    "@typescript-eslint/parser": "^5.57.0",
+    "eslint": "^8.37.0",
+    "jest": "^29.5.0",
+    "ts-jest": "^29.1.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.4"
+  }
+}
