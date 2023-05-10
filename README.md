@@ -1,5 +1,8 @@
 # @da440dil/re
 
+![GitHub Actions](https://github.com/da440dil/js-re/actions/workflows/ci.yml/badge.svg)
+[![Coverage Status](https://coveralls.io/repos/github/da440dil/js-re/badge.svg?branch=main)](https://coveralls.io/github/da440dil/js-re?branch=main)
+
 Abstraction for retry strategies.
 
 [Example](./examples/decorator.ts) decorator ([typescript](https://www.typescriptlang.org/) [version](https://github.com/microsoft/TypeScript/releases/tag/v5.0.2) >= 5):
