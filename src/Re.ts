@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 import { setTimeout } from 'node:timers/promises';
 
 export class Re extends EventEmitter<{ retry: [{ error: unknown; delay: number; }]; }> {
