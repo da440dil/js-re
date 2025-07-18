@@ -1,54 +1,55 @@
-import http from 'http';
-import { Re } from '../src';
+import http from 'node:http';
+import { once } from 'node:events';
+import { Re, Tryable } from '../src';
 
 // Create retry strategy which retries execution in case of an error after 10ms, 20ms, 30ms.
 const re = new Re([10, 20, 30]);
 
+re.on('retry', ({ error, delay }) => {
+	console.log(`${error}, retry after ${delay}ms`);
+});
+
 class Client {
-	private url = 'http://localhost:3000';
-	// Decorate the class method with retry logic.
-	@Re.Tryable(re)
-	public get(): Promise<string> {
-		return new Promise((resolve, reject) => {
-			const req = http.get(this.url, (res) => {
-				if (res.statusCode !== 200) {
-					res.resume();
-					return reject(new Error(`Failed with statusCode ${String(res.statusCode)}`));
-				}
-				let data = '';
-				res.on('data', (chunk) => { data += chunk; });
-				res.on('end', () => { resolve(data); });
-			});
-			req.on('error', reject);
-		});
+	// Decorate class method with retry logic.
+	@Tryable(re)
+	public async get(): Promise<string> {
+		const res = await fetch('http://localhost:3000');
+		if (res.status !== 200) {
+			throw new Error(`Failed with status ${res.status}`);
+		}
+		return res.text();
 	}
 }
-const client = new Client();
-const get = async () => {
-	try {
-		const data = await client.get();
-		console.log(`DATA: ${data}`);
-	} catch (err) {
-		console.log(err instanceof Error ? `ERROR: ${(err).message}` : err);
-	}
-};
-
-let x = 0;
-const server = http.createServer((_, res) => {
-	const statusCode = x > 2 || x % 2 ? 418 : 200; // { 0 => 200, 1 => 418, 2 => 200, ... => 418 }
-	res.writeHead(statusCode).end(`{ x: ${x} }`);
-	x++;
-});
-server.listen(3000);
 
 async function main() {
+	let x = 0;
+	const server = http.createServer((_, res) => {
+		// { 0 => 200, 1 => 418, 2 => 200, ... => 418 }
+		res.writeHead(x > 2 || x % 2 ? 418 : 200).end(`{ x: ${x++} }`);
+	});
+	server.listen(3000);
+	await once(server, 'listening');
+
+	const client = new Client();
 	for (let i = 0; i < 3; i++) {
-		await get();
+		try {
+			const data = await client.get();
+			console.log(`DATA: ${data}`);
+		} catch (err) {
+			console.log(`ERROR: ${err}`);
+		}
 	}
 	// Output:
-	// 	DATA: { x: 0 }
+	// DATA: { x: 0 }
+	// Error: Failed with status 418, retry after 10ms
 	// DATA: { x: 2 }
-	// ERROR: Failed with statusCode 418
+	// Error: Failed with status 418, retry after 10ms
+	// Error: Failed with status 418, retry after 20ms
+	// Error: Failed with status 418, retry after 30ms
+	// ERROR: Error: Failed with status 418
+
+	server.close();
+	await once(server, 'close');
 }
 
-main().then(() => { process.exit(0); }).catch((err) => { console.error(err); process.exit(1); });
+main().catch(console.error);

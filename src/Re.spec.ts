@@ -1,69 +1,65 @@
 import { Re } from './Re';
-import { RetryableError } from './RetryableError';
 
 describe('exec', () => {
-	const iterable = [50, 50, 50];
-	const re = new Re(iterable);
+	const re = new Re([10, 20, 30]);
 	const fn = jest.fn();
 	const v = 42;
 	const e = new Error('Some error');
 
+	let arr: { error: unknown; delay: number; }[] = [];
+	re.on('retry', (v) => { arr.push(v); });
+
 	afterEach(() => {
 		jest.clearAllMocks();
+		arr = [];
 	});
 
 	it('should return if function returns', async () => {
 		fn.mockResolvedValue(v);
 		await expect(re.exec(fn)).resolves.toBe(v);
 		expect(fn.mock.calls.length).toBe(1);
+		expect(arr).toEqual([]);
 	});
 
 	it('should retry if function throws error', async () => {
 		fn.mockRejectedValue(e);
-		await expect(re.exec(fn)).rejects.toThrowError(e);
-		expect(fn.mock.calls.length).toBe(iterable.length + 1);
+		await expect(re.exec(fn)).rejects.toThrow(e);
+		expect(fn.mock.calls.length).toBe(4);
+		expect(arr).toEqual([{ error: e, delay: 10 }, { error: e, delay: 20 }, { error: e, delay: 30 }]);
 	});
 
 	it('should return if function throws error and finally returns', async () => {
 		fn.mockRejectedValueOnce(e).mockRejectedValueOnce(e).mockResolvedValue(v);
 		await expect(re.exec(fn)).resolves.toBe(v);
 		expect(fn.mock.calls.length).toBe(3);
+		expect(arr).toEqual([{ error: e, delay: 10 }, { error: e, delay: 20 }]);
 	});
 });
 
 describe('exec', () => {
-	const iterable = [50, 50, 50];
-	const isTryable = (err: unknown): boolean => {
-		return err instanceof RetryableError;
-	};
-	const re = new Re(iterable, { isTryable });
+	class ReType extends Re {
+		public override isTryable(err: unknown): boolean {
+			return err instanceof TypeError;
+		}
+	}
+
+	const re = new ReType([10, 20, 30]);
 	const fn = jest.fn();
+
+	const arr: { error: unknown; delay: number; }[] = [];
+	re.on('retry', (v) => { arr.push(v); });
 
 	it('should not retry if function throws error which is not tryable', async () => {
 		const err = new Error('Some error');
 		fn.mockRejectedValue(err);
-		await expect(re.exec(fn)).rejects.toThrowError(err);
+		await expect(re.exec(fn)).rejects.toThrow(err);
 		expect(fn.mock.calls.length).toBe(1);
+		expect(arr).toEqual([]);
 	});
 });
 
-describe('Tryable', () => {
-	const iterable = [50, 50, 50];
-	const re = new Re(iterable);
-	const e = new Error('Some error');
-
-	class T {
-		private i = 0;
-
-		@Re.Tryable(re)
-		public test(x: number, y: number): Promise<number> {
-			this.i++;
-			return this.i === 3 ? Promise.resolve((this.i + x) * y) : Promise.reject(e);
-		}
-	}
-
-	it('should decorate a class method with retry logic', async () => {
-		const t = new T();
-		await expect(t.test(2, 3)).resolves.toBe(15);
+describe('Re', () => {
+	it('should throw if iterable is empty', () => {
+		expect(() => new Re([])).toThrow();
 	});
 });

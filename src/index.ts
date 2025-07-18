@@ -1,5 +1,5 @@
 export { Re } from './Re';
-export { RetryableError, RetryLater } from './RetryableError';
+export { Tryable } from './Tryable';
 export { Constant } from './iterable/Constant';
 export { Linear } from './iterable/Linear';
 export { LinearRate } from './iterable/LinearRate';
