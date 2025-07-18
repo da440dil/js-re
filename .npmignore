@@ -5,3 +5,4 @@ tsconfig.json
 tsconfig.build.json
 eslint.config.js
 jest.config.json
+.github/
